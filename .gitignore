@@ -1,4 +1,3 @@
-# open .gitignore and update it to this:
 venv/
 bin/
 lib/
