@@ -1,6 +1,6 @@
 import pandas
 def calculate_rsi(df,period=14):
-    delta=df['Close'].diff()
+    delta=df['close'].diff()
     gain=delta.where(delta>0,0)
     loss=-delta.where(delta<0,0)
     avg_gain=gain.ewm(com=period-1).mean()
@@ -10,26 +10,26 @@ def calculate_rsi(df,period=14):
     return rsi
 
 def calculate_macd(df,short_period=12,long_period=26,signal_period=9):
-	ema_short=df['Close'].ewm(span=short_period,adjust=False).mean()
-	ema_long=df['Close'].ewm(span=long_period,adjust=False).mean()
+	ema_short=df['close'].ewm(span=short_period,adjust=False).mean()
+	ema_long=df['close'].ewm(span=long_period,adjust=False).mean()
 	macd=ema_short-ema_long	
 	signal=macd.ewm(span=signal_period,adjust=False).mean()
 	histogram=macd-signal
 	return macd,signal,histogram
 
 def bollinger_bands(df,period=20):
-	middle=df['Close'].rolling(window=period).mean()
-	std=df['Close'].rolling(window=period).std()
+	middle=df['close'].rolling(window=period).mean()
+	std=df['close'].rolling(window=period).std()
 	upper=middle+(2*std)
 	lower=middle-(2*std)
 	return upper,middle,lower
 
 def calculate_moving_averages(df):
-	sma_20=df['Close'].rolling(window=20).mean()
-	sma_50=df['Close'].rolling(window=50).mean()
-	sma_200=df['Close'].rolling(window=200).mean()
-	ema_12=df['Close'].ewm(span=12,adjust=False).mean()
-	ema_26=df['Close'].ewm(span=26,adjust=False).mean()
+	sma_20=df['close'].rolling(window=20).mean()
+	sma_50=df['close'].rolling(window=50).mean()
+	sma_200=df['close'].rolling(window=200).mean()
+	ema_12=df['close'].ewm(span=12,adjust=False).mean()
+	ema_26=df['close'].ewm(span=26,adjust=False).mean()
 	return sma_20,sma_50,sma_200,ema_12,ema_26
 
 tickers=["AAPL","GOOG","MSFT","AMZN","BTC-USD"]
