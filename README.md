@@ -60,7 +60,7 @@ Data Sources (yfinance / Alpaca API)
 
 ```
 ## 🗂️ Project Structure
-
+```
 drift/
 ├── data/
 │   ├── ingestion/
@@ -92,7 +92,7 @@ drift/
 ├── requirements.txt
 └── README.md
 
----
+```
 
 ## ⚙️ Tech Stack
 
