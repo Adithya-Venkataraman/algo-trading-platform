@@ -116,7 +116,7 @@ drift/
 ---
 
 ## 📊 Data Pipeline
-
+```
 ### Tickers Tracked
 
 AAPL    →  Apple Inc
@@ -124,7 +124,7 @@ MSFT    →  Microsoft
 GOOG    →  Google (Alphabet)
 AMZN    →  Amazon
 BTC-USD →  Bitcoin
-
+```
 ### Database Schema
 ```
 **stock_prices** (hypertable):
