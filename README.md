@@ -23,10 +23,10 @@ DRIFT is a self-running algorithmic trading system that:
 - Monitors model health with **Evidently AI + Grafana** *(upcoming)*
 - Deploys on **AWS EC2** with full CI/CD *(upcoming)*
 
-'''
+
 
 ## 🏗️ Architecture
-
+'''
 Data Sources (yfinance / Alpaca API)
             │
             ▼
@@ -57,7 +57,6 @@ Data Sources (yfinance / Alpaca API)
             │
             ▼
      AWS EC2 + CI/CD Pipeline       <- upcoming
-
 '''
 
 ## 🗂️ Project Structure
