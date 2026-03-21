@@ -201,29 +201,40 @@ TimescaleDB (stock_prices hypertable)
 ### Setup
 
 1. Clone the repository:
+```
 git clone https://github.com/Adithya-Venkataraman/algo-trading-platform.git
 cd algo-trading-platform
-
-2. Create virtual environment:
+```
+3. Create virtual environment:
+```
 python3 -m venv venv
 source venv/bin/activate
-
-3. Install dependencies:
+```
+5. Install dependencies:
+```
 pip install -r requirements.txt
-
-4. Start Docker containers:
+```
+7. Start Docker containers:
+```
 docker-compose up -d
-
-5. Verify containers are running:
+```
+9. Verify containers are running:
+```
 docker ps
-
-6. Run historical data ingestion:
+```
+11. Run historical data ingestion:
+```
 python -m data.ingestion.fetcher
-
-7. Start real-time streaming (two terminals):
-Terminal 1 - Producer: python -m streaming.producer
-Terminal 2 - Consumer: python -m streaming.consumer
-
+```
+13. Start real-time streaming (two terminals):
+Terminal 1 - Producer:
+```
+python -m streaming.producer
+```
+Terminal 2 - Consumer:
+```
+python -m streaming.consumer
+```
 ---
 
 ## 🗓️ Build Progress
