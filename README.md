@@ -126,7 +126,7 @@ AMZN    →  Amazon
 BTC-USD →  Bitcoin
 
 ### Database Schema
-
+```
 **stock_prices** (hypertable):
 
 time      TIMESTAMPTZ NOT NULL
@@ -154,7 +154,7 @@ sma_200     DOUBLE PRECISION   -- Simple Moving Average 200
 ema_12      DOUBLE PRECISION   -- Exponential Moving Average 12
 ema_26      DOUBLE PRECISION   -- Exponential Moving Average 26
 
----
+```
 
 ## 🔄 Real-Time Streaming Pipeline
 
