@@ -1,11 +1,16 @@
 import pandas as pd
+import optuna
 import mlflow
 import mlflow.sklearn
+import xgboost as xgb
+from collections import Counter
 from data.db_connection import get_connection
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score,classification_report
+from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
 conn=get_connection()
 query="SELECT * from stock_features order by time ASC"
 df=pd.read_sql(query,conn)
@@ -37,6 +42,11 @@ merged_df = pd.merge(df, prices_df[['time', 'symbol', 'label']],
 
 # drop NaN rows
 merged_df = merged_df.dropna()
+# remove FLAT class - binary classification only
+merged_df = merged_df[merged_df['label'] != 0]
+
+print("After removing FLAT:")
+print(merged_df['label'].value_counts())
 
 print(merged_df.shape)
 print(merged_df['label'].value_counts())
@@ -94,3 +104,112 @@ with mlflow.start_run(run_name="logistic_regression"):
     print(f"Accuracy: {accuracy:.4f}")
     print(classification_report(y_test, y_pred))
     print("Run logged to MLflow! ✅")
+
+with mlflow.start_run(run_name="xgboost"):
+    mlflow.log_param("model", "XGBoost")
+    mlflow.log_param("threshold", 0.002)
+    
+    # encode labels
+    from sklearn.preprocessing import LabelEncoder
+    le = LabelEncoder()
+    y_train_encoded = le.fit_transform(y_train)
+    y_test_encoded = le.transform(y_test)
+    
+    # train model
+    model_xgb = xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=5,
+        learning_rate=0.1,
+        random_state=42,
+        eval_metric='mlogloss',
+        scale_pos_weight=3
+    )
+    sample_weights = compute_sample_weight(
+    class_weight='balanced',
+    y=y_train_encoded
+    )
+
+    model_xgb.fit(X_train_scaled, y_train_encoded, 
+              sample_weight=sample_weights)
+    # check class distribution
+    print(Counter(y_train_encoded))
+    
+    # predict + decode
+    y_pred_xgb = model_xgb.predict(X_test_scaled)
+    y_pred_xgb_decoded = le.inverse_transform(y_pred_xgb)
+    
+    # evaluate
+    accuracy_xgb = accuracy_score(y_test, y_pred_xgb_decoded)
+    mlflow.log_metric("accuracy", accuracy_xgb)
+    mlflow.xgboost.log_model(model_xgb, "model")
+    
+    print(f"XGBoost Accuracy: {accuracy_xgb:.4f}")
+    print(classification_report(y_test, y_pred_xgb_decoded))
+
+import optuna
+
+def objective(trial):
+    # define search space
+    params = {
+        'n_estimators': trial.suggest_int('n_estimators', 50, 300),
+        'max_depth': trial.suggest_int('max_depth', 3, 10),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3),
+        'subsample': trial.suggest_float('subsample', 0.6, 1.0),
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+        'eval_metric': 'mlogloss',
+        'random_state': 42
+    }
+    
+    model = xgb.XGBClassifier(**params)
+    
+    sample_weights = compute_sample_weight(
+        class_weight='balanced',
+        y=y_train_encoded
+    )
+    
+    model.fit(X_train_scaled, y_train_encoded,
+              sample_weight=sample_weights)
+    
+    y_pred = model.predict(X_test_scaled)
+    y_pred_decoded = le.inverse_transform(y_pred)
+    
+    return accuracy_score(y_test, y_pred_decoded)
+
+# run optimization
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=50)
+
+print("Best params:", study.best_params)
+print("Best accuracy:", study.best_value)
+
+# ── MLflow RUN 3: XGBoost (tuned) ──
+with mlflow.start_run(run_name="xgboost_tuned"):
+    
+    # log best params found by Optuna
+    mlflow.log_params(study.best_params)
+    mlflow.log_param("model", "XGBoost_tuned")
+    
+    # train with best params
+    model_tuned = xgb.XGBClassifier(
+        **study.best_params,        # ← best params from Optuna!
+        eval_metric='mlogloss',
+        random_state=42
+    )
+    
+    sample_weights = compute_sample_weight(
+        class_weight='balanced',
+        y=y_train_encoded
+    )
+    
+    model_tuned.fit(X_train_scaled, y_train_encoded,
+                    sample_weight=sample_weights)
+    
+    y_pred_tuned = model_tuned.predict(X_test_scaled)
+    y_pred_tuned_decoded = le.inverse_transform(y_pred_tuned)
+    
+    accuracy_tuned = accuracy_score(y_test, y_pred_tuned_decoded)
+    mlflow.log_metric("accuracy", accuracy_tuned)
+    mlflow.xgboost.log_model(model_tuned, "model")
+    
+    print(f"XGBoost Tuned Accuracy: {accuracy_tuned:.4f}")
+    print(classification_report(y_test, y_pred_tuned_decoded))

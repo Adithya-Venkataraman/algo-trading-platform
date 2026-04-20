@@ -1,0 +1,23 @@
+artifact_path: /home/jingv/algo-trading-platform/mlruns/1/models/m-74180d7974384e4282a8e5a8ad8fb354/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-74180d7974384e4282a8e5a8ad8fb354
+model_size_bytes: 812
+model_uuid: m-74180d7974384e4282a8e5a8ad8fb354
+prompts: null
+run_id: b805c47658c449d8bb9da90b7fe4c786
+utc_time_created: '2026-04-20 07:17:04.771330'
