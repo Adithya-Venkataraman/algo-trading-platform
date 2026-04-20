@@ -1,8 +1,10 @@
 import pandas as pd
 import optuna
+import shap
 import mlflow
 import mlflow.sklearn
 import xgboost as xgb
+import matplotlib.pyplot as plt
 from collections import Counter
 from data.db_connection import get_connection
 from sklearn.model_selection import train_test_split
@@ -213,3 +215,19 @@ with mlflow.start_run(run_name="xgboost_tuned"):
     
     print(f"XGBoost Tuned Accuracy: {accuracy_tuned:.4f}")
     print(classification_report(y_test, y_pred_tuned_decoded))
+
+# explain model predictions
+explainer = shap.TreeExplainer(model_tuned)
+shap_values = explainer.shap_values(
+    pd.DataFrame(X_test_scaled, columns=feature_cols)
+)
+# log feature importance to MLflow
+with mlflow.start_run(run_name="shap_analysis"):
+    shap.summary_plot(
+        shap_values, 
+        pd.DataFrame(X_test_scaled, columns=feature_cols),
+        show=False
+    )
+    plt.savefig("shap_summary.png")
+    mlflow.log_artifact("shap_summary.png")
+    print("SHAP analysis complete! ✅")
