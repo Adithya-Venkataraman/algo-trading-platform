@@ -14,7 +14,7 @@ while True:
         producer.send('stock-prices',
                       value={'symbol':ticker,
                              'price':price,
-                         'time':datetime.now().isoformat()
+                         'time':datetime.now().isoformat()  
             })
     print("Data sent to Kafka topic:'stock-prices' ✅")
     time.sleep(1)

@@ -13,6 +13,10 @@ from sklearn.metrics import accuracy_score,classification_report
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+
 conn=get_connection()
 query="SELECT * from stock_features order by time ASC"
 df=pd.read_sql(query,conn)
@@ -148,7 +152,7 @@ with mlflow.start_run(run_name="xgboost"):
     print(f"XGBoost Accuracy: {accuracy_xgb:.4f}")
     print(classification_report(y_test, y_pred_xgb_decoded))
 
-import optuna
+
 
 def objective(trial):
     # define search space
@@ -231,3 +235,62 @@ with mlflow.start_run(run_name="shap_analysis"):
     plt.savefig("shap_summary.png")
     mlflow.log_artifact("shap_summary.png")
     print("SHAP analysis complete! ✅")
+
+# create sequences function
+def create_sequences(X, y, timesteps=10):
+    Xs, ys = [], []
+    for i in range(len(X) - timesteps):
+        Xs.append(X[i:i+timesteps])
+        ys.append(y[i+timesteps])
+    return np.array(Xs), np.array(ys)
+
+# create sequences
+X_train_seq, y_train_seq = create_sequences(
+    np.array(X_train_scaled), np.array(y_train_encoded),timesteps=60)
+X_test_seq, y_test_seq = create_sequences(
+    np.array(X_test_scaled), np.array(y_test_encoded),timesteps=60)
+
+print("LSTM input shape:", X_train_seq.shape)
+
+# build model
+model_lstm = Sequential([
+    LSTM(64, return_sequences=True,
+         input_shape=(10, X_train_seq.shape[2])),
+    Dropout(0.2),
+    LSTM(32, return_sequences=False),
+    Dropout(0.2),
+    Dense(16, activation='relu'),
+    Dense(2, activation='softmax')
+])
+
+model_lstm.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# train with MLflow
+with mlflow.start_run(run_name="lstm"):
+    mlflow.log_param("model", "LSTM")
+    mlflow.log_param("timesteps", 60)
+    mlflow.log_param("epochs", 150) 
+    mlflow.log_param("lstm_units", 64)
+    
+    history = model_lstm.fit(
+        X_train_seq, y_train_seq,
+        epochs=150,
+        batch_size=32,
+        validation_split=0.1,
+        verbose=1
+    )
+    
+    y_pred_lstm = np.argmax(
+        model_lstm.predict(X_test_seq), axis=1)
+    y_pred_decoded = le.inverse_transform(y_pred_lstm)
+    y_test_decoded = le.inverse_transform(y_test_seq)
+    
+    accuracy_lstm = accuracy_score(y_test_decoded, y_pred_decoded)
+    mlflow.log_metric("accuracy", accuracy_lstm)
+    
+    print(f"LSTM Accuracy: {accuracy_lstm:.4f}")
+    print(classification_report(y_test_decoded, y_pred_decoded))
