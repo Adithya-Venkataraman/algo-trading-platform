@@ -2,6 +2,7 @@ import pandas as pd
 import optuna
 import shap
 import mlflow
+import random
 import mlflow.sklearn
 import xgboost as xgb
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 
@@ -251,7 +253,9 @@ X_test_seq, y_test_seq = create_sequences(
     np.array(X_test_scaled), np.array(y_test_encoded),timesteps=60)
 
 print("LSTM input shape:", X_train_seq.shape)
-
+np.random.seed(42)
+tf.random.set_seed(42)
+random.seed(42)
 # build model
 model_lstm = Sequential([
     LSTM(64, return_sequences=True,
@@ -294,3 +298,33 @@ with mlflow.start_run(run_name="lstm"):
     
     print(f"LSTM Accuracy: {accuracy_lstm:.4f}")
     print(classification_report(y_test_decoded, y_pred_decoded))
+with mlflow.start_run(run_name="ensemble"):
+    mlflow.log_param("model", "Ensemble_XGB_LSTM")
+    
+    # get XGBoost probabilities
+    xgb_probs = model_tuned.predict_proba(X_test_scaled)
+    
+    # get LSTM probabilities
+    # align test sets (LSTM has fewer rows due to sequences)
+    lstm_probs = model_lstm.predict(X_test_seq)
+    
+    # align XGBoost predictions to match LSTM length
+    xgb_probs_aligned = xgb_probs[-len(lstm_probs):]
+    y_test_aligned = np.array(y_test_encoded)[-len(lstm_probs):]
+    
+    # average probabilities
+    # XGBoost 60%, LSTM 40%
+    ensemble_probs = (0.6 * xgb_probs_aligned + 0.4 * lstm_probs)
+    
+    # final prediction
+    ensemble_pred = np.argmax(ensemble_probs, axis=1)
+    ensemble_pred_decoded = le.inverse_transform(ensemble_pred)
+    y_test_decoded = le.inverse_transform(y_test_aligned)
+    
+    accuracy_ensemble = accuracy_score(
+        y_test_decoded, ensemble_pred_decoded)
+    mlflow.log_metric("accuracy", accuracy_ensemble)
+    
+    print(f"Ensemble Accuracy: {accuracy_ensemble:.4f}")
+    print(classification_report(
+        y_test_decoded, ensemble_pred_decoded))
