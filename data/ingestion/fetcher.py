@@ -9,7 +9,7 @@ tickers=["AAPL","GOOG","MSFT","AMZN","BTC-USD"]
 for ticker in tickers:
     try:
         t=yf.Ticker(ticker)
-        df=t.history(period="1y")
+        df=t.history(period="5y")
         for index,row in df.iterrows():
             cursor.execute("INSERT INTO stock_prices(time,symbol,open,high,low,close,volume) values(%s,%s,%s,%s,%s,%s,%s)",
             (index, ticker, float(row['Open']), float(row['High']), float(row['Low']), float(row['Close']), int(row['Volume'])))

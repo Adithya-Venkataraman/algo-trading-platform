@@ -314,11 +314,7 @@ with mlflow.start_run(run_name="ensemble"):
     
     # average probabilities
     # XGBoost 60%, LSTM 40%
-<<<<<<< HEAD
     ensemble_probs = (0.6 * xgb_probs_aligned + 0.4 * lstm_probs)
-=======
-    ensemble_probs = (0.7 * xgb_probs_aligned + 0.3 * lstm_probs)
->>>>>>> 6a459db (Ignore MLflow artifacts)
     
     # final prediction
     ensemble_pred = np.argmax(ensemble_probs, axis=1)
@@ -331,7 +327,6 @@ with mlflow.start_run(run_name="ensemble"):
     
     print(f"Ensemble Accuracy: {accuracy_ensemble:.4f}")
     print(classification_report(
-    y_test_decoded, ensemble_pred_decoded))
     y_test_decoded, ensemble_pred_decoded))
 
 import joblib

@@ -36,7 +36,7 @@ tickers=["AAPL","GOOG","MSFT","AMZN","BTC-USD"]
 if __name__ == "__main__":
     import yfinance as yf
     ticker = yf.Ticker("AAPL")
-    df = ticker.history(period="1y")
+    df = ticker.history(period="5y")
     upper,middle,lower=bollinger_bands(df)
     print("UPPER:\n")
     print(upper.tail())
