@@ -47,7 +47,7 @@ for idx, row in features_df.iterrows():
     confidence = max(proba)
     signal = le.inverse_transform([pred])[0]
     
-    if confidence < 0.60:
+    if confidence < 0.57:
         signals[idx] = 'FLAT'
     elif signal == 1:
         signals[idx] = 'BUY'
@@ -103,7 +103,7 @@ class DriftStrategy(bt.Strategy):
         if signal == 'BUY' and not self.position:
     # use cash directly instead of shares
             cash = self.broker.getcash()
-            size = (cash * 0.10) / self.data.close[0]  # fractional!
+            size = (cash * 0.15) / self.data.close[0]  # fractional!
             if size > 0.001:  # minimum 0.001 BTC
                 self.order = self.buy(size=size)
                 print(f"BUY {size:.4f} BTC @ ${self.data.close[0]:.2f}")
