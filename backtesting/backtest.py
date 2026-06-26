@@ -8,6 +8,7 @@ import numpy as np
 from sqlalchemy import create_engine
 from trading.signal_generator import generate_signal
 
+
 # ── LOAD MODEL ──
 model_xgb = xgb.XGBClassifier()
 model_xgb.load_model('models/training/xgboost_tuned.json')
@@ -38,28 +39,22 @@ features_df['time']=features_df['time'].dt.date
 features_df.set_index('time', inplace=True)
 
 # generate signal for each row
-signals = {}
+# LSTM signal computation
+# replace LSTM sequence code with:
+signals={}
 for idx, row in features_df.iterrows():
     X = row.values.reshape(1, -1)
     X_scaled = scaler.transform(X)
     proba = model_xgb.predict_proba(X_scaled)[0]
     pred = model_xgb.predict(X_scaled)[0]
     confidence = max(proba)
-    signal = le.inverse_transform([pred])[0]
     
     if confidence < 0.57:
         signals[idx] = 'FLAT'
-    elif signal == 1:
+    elif le.inverse_transform([pred])[0] == 1:
         signals[idx] = 'BUY'
     else:
         signals[idx] = 'SELL'
-
-print(f"Signals computed for {len(signals)} days! ✅")
-print(f"Sample signals: {list(signals.items())[:5]}")
-print(f"Total signals: {len(signals)}")
-print(f"BUY signals: {list(signals.values()).count('BUY')}")
-print(f"SELL signals: {list(signals.values()).count('SELL')}")
-print(f"FLAT signals: {list(signals.values()).count('FLAT')}")
 
 
 # ── DRIFT STRATEGY ──

@@ -19,6 +19,9 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 
+
+# save LSTM model first in train.py:
+
 conn=get_connection()
 query="SELECT * from stock_features order by time ASC"
 df=pd.read_sql(query,conn)
