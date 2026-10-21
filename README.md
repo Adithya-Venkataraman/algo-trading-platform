@@ -23,10 +23,11 @@ DRIFT is a self-running algorithmic trading system that:
 - Monitors model health with **Evidently AI + Grafana** *(upcoming)*
 - Deploys on **AWS EC2** with full CI/CD *(upcoming)*
 
+---
 
-```
 ## 🏗️ Architecture
 
+```
 Data Sources (yfinance / Alpaca API)
             │
             ▼
@@ -44,55 +45,60 @@ Data Sources (yfinance / Alpaca API)
    SMA | EMA  | Volume Signals
             │
             ▼
-    ML Models (XGBoost + LSTM)     <- upcoming
+    ML Models (XGBoost + LSTM)        <- upcoming
             │
             ▼
-       Backtesting Engine           <- upcoming
+    Backtesting Engine                <- upcoming
+    (Backtrader + Pyfolio)
             │
             ▼
-    Paper Trading (Alpaca API)      <- upcoming
+    Paper Trading (Alpaca API)        <- upcoming
             │
             ▼
-  Monitoring (Evidently + Grafana)  <- upcoming
+    Monitoring (Evidently + Grafana)  <- upcoming
             │
             ▼
-     AWS EC2 + CI/CD Pipeline       <- upcoming
-
+    AWS EC2 + CI/CD Pipeline          <- upcoming
 ```
+
+---
+
 ## 🗂️ Project Structure
+
 ```
 drift/
 ├── data/
 │   ├── ingestion/
-│   │   └── fetcher.py          # yfinance data ingestion pipeline
+│   │   └── fetcher.py            # yfinance data ingestion pipeline
 │   ├── features/
-│   │   └── indicators.py       # RSI, MACD, Bollinger Bands, SMA, EMA
-│   ├── feast/                  # Feature store config (upcoming)
-│   └── db_connection.py        # Reusable TimescaleDB connection
+│   │   └── indicators.py         # RSI, MACD, Bollinger Bands, SMA, EMA
+│   ├── feast/                    # Feature store config (upcoming)
+│   └── db_connection.py          # Reusable TimescaleDB connection
 │
 ├── models/
-│   ├── training/               # XGBoost + LSTM training (upcoming)
-│   ├── evaluation/             # Walk-forward validation (upcoming)
-│   └── registry/               # MLflow model promotion (upcoming)
+│   ├── training/                 # XGBoost + LSTM training (upcoming)
+│   ├── evaluation/               # Walk-forward validation (upcoming)
+│   └── registry/                 # MLflow model promotion (upcoming)
 │
 ├── streaming/
-│   ├── producer.py             # Kafka producer (live price → Kafka)
-│   └── consumer.py             # Kafka consumer (Kafka → TimescaleDB)
+│   ├── producer.py               # Kafka producer (live price → Kafka)
+│   └── consumer.py               # Kafka consumer (Kafka → TimescaleDB)
 │
-├── backtesting/                # Backtrader integration (upcoming)
+├── backtesting/                  # Backtrader integration (upcoming)
 ├── trading/
-│   └── execution/              # Alpaca paper trading (upcoming)
-├── api/                        # FastAPI signal serving (upcoming)
-├── monitoring/                 # Evidently AI + Grafana (upcoming)
+│   └── execution/                # Alpaca paper trading (upcoming)
+├── api/                          # FastAPI signal serving (upcoming)
+├── monitoring/                   # Evidently AI + Grafana (upcoming)
 ├── orchestration/
-│   └── prefect_flows/          # Automated pipelines (upcoming)
+│   └── prefect_flows/            # Automated pipelines (upcoming)
 ├── tests/
 ├── docs/
-├── docker-compose.yml
+├── docker-compose.yml            # TimescaleDB + Redpanda containers
 ├── requirements.txt
 └── README.md
-
 ```
+
+---
 
 ## ⚙️ Tech Stack
 
@@ -116,19 +122,22 @@ drift/
 ---
 
 ## 📊 Data Pipeline
-```
+
 ### Tickers Tracked
 
+```
 AAPL    →  Apple Inc
 MSFT    →  Microsoft
 GOOG    →  Google (Alphabet)
 AMZN    →  Amazon
 BTC-USD →  Bitcoin
 ```
+
 ### Database Schema
-```
+
 **stock_prices** (hypertable):
 
+```sql
 time      TIMESTAMPTZ NOT NULL
 symbol    VARCHAR(10) NOT NULL
 open      DOUBLE PRECISION
@@ -136,37 +145,42 @@ high      DOUBLE PRECISION
 low       DOUBLE PRECISION
 close     DOUBLE PRECISION
 volume    BIGINT
+```
 
 **stock_features** (hypertable):
 
-time        TIMESTAMPTZ NOT NULL
-symbol      VARCHAR(10) NOT NULL
-rsi         DOUBLE PRECISION   -- Relative Strength Index (14)
-macd        DOUBLE PRECISION   -- MACD Line
-macd_signal DOUBLE PRECISION   -- Signal Line (9)
-macd_hist   DOUBLE PRECISION   -- MACD Histogram
-bb_upper    DOUBLE PRECISION   -- Bollinger Band Upper
-bb_middle   DOUBLE PRECISION   -- Bollinger Band Middle (SMA 20)
-bb_lower    DOUBLE PRECISION   -- Bollinger Band Lower
-sma_20      DOUBLE PRECISION   -- Simple Moving Average 20
-sma_50      DOUBLE PRECISION   -- Simple Moving Average 50
-sma_200     DOUBLE PRECISION   -- Simple Moving Average 200
-ema_12      DOUBLE PRECISION   -- Exponential Moving Average 12
-ema_26      DOUBLE PRECISION   -- Exponential Moving Average 26
-
+```sql
+time         TIMESTAMPTZ NOT NULL
+symbol       VARCHAR(10) NOT NULL
+rsi          DOUBLE PRECISION   -- Relative Strength Index (14)
+macd         DOUBLE PRECISION   -- MACD Line
+macd_signal  DOUBLE PRECISION   -- Signal Line (9)
+macd_hist    DOUBLE PRECISION   -- MACD Histogram
+bb_upper     DOUBLE PRECISION   -- Bollinger Band Upper
+bb_middle    DOUBLE PRECISION   -- Bollinger Band Middle (SMA 20)
+bb_lower     DOUBLE PRECISION   -- Bollinger Band Lower
+sma_20       DOUBLE PRECISION   -- Simple Moving Average 20
+sma_50       DOUBLE PRECISION   -- Simple Moving Average 50
+sma_200      DOUBLE PRECISION   -- Simple Moving Average 200
+ema_12       DOUBLE PRECISION   -- Exponential Moving Average 12
+ema_26       DOUBLE PRECISION   -- Exponential Moving Average 26
 ```
+
+---
 
 ## 🔄 Real-Time Streaming Pipeline
 
+```
 Alpaca WebSocket
       ↓
-producer.py (fetches live price every second)
+producer.py  (fetches live price every second)
       ↓
-Apache Kafka / Redpanda (topic: stock-prices)
+Apache Kafka / Redpanda  (topic: stock-prices)
       ↓
-consumer.py (reads from Kafka)
+consumer.py  (reads from Kafka)
       ↓
-TimescaleDB (stock_prices hypertable)
+TimescaleDB  (stock_prices hypertable)
+```
 
 ---
 
@@ -200,59 +214,73 @@ TimescaleDB (stock_prices hypertable)
 
 ### Setup
 
-1. Clone the repository:
-```
+**1. Clone the repository:**
+
+```bash
 git clone https://github.com/Adithya-Venkataraman/algo-trading-platform.git
 cd algo-trading-platform
 ```
-3. Create virtual environment:
-```
+
+**2. Create virtual environment:**
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
-5. Install dependencies:
-```
+
+**3. Install dependencies:**
+
+```bash
 pip install -r requirements.txt
 ```
-7. Start Docker containers:
-```
+
+**4. Start Docker containers:**
+
+```bash
 docker-compose up -d
 ```
-9. Verify containers are running:
-```
+
+**5. Verify containers are running:**
+
+```bash
 docker ps
+# Should show: timescaledb + redpanda
 ```
-11. Run historical data ingestion:
-```
+
+**6. Run historical data ingestion:**
+
+```bash
 python -m data.ingestion.fetcher
 ```
-13. Start real-time streaming (two terminals):
-Terminal 1 - Producer:
-```
+
+**7. Start real-time streaming (two terminals):**
+
+```bash
+# Terminal 1 - Producer
 python -m streaming.producer
-```
-Terminal 2 - Consumer:
-```
+
+# Terminal 2 - Consumer
 python -m streaming.consumer
 ```
+
 ---
 
 ## 🗓️ Build Progress
 
 | Week | Status | Description |
 |---|---|---|
-| Week 1 | ✅ | Data Foundation — Docker, TimescaleDB hypertable, multi-ticker ingestion |
+| Week 1 | ✅ | Data Foundation — Docker, TimescaleDB, data ingestion |
 | Week 2 | ✅ | Feature Engineering — RSI, MACD, Bollinger Bands, SMA, EMA |
-| Week 3 | ✅ | Kafka Streaming — Producer/Consumer pipeline, real-time data flow |
-| Week 4 | ⏳ | ML Models — XGBoost, LSTM, MLflow tracking |
-| Week 5 | ⏳ | Advanced ML — Ensemble, Optuna, SHAP explainability |
-| Week 6 | ⏳ | Signal Generation — Buy/sell logic, risk management |
-| Week 7 | ⏳ | Backtesting — Backtrader, walk-forward validation |
-| Week 8 | ⏳ | Paper Trading — Alpaca API, live order execution |
-| Week 9 | ⏳ | Monitoring — Evidently AI, Grafana dashboards |
-| Week 10 | ⏳ | Orchestration — Prefect DAGs, automated scheduling |
-| Week 11 | ⏳ | Cloud Deployment — AWS EC2, Nginx, GitHub Actions |
-| Week 12 | ⏳ | Polish — Documentation, architecture diagrams |
+| Week 3 | ✅ | Kafka Streaming — Producer/Consumer real-time pipeline |
+| Week 4 | ⏳ | ML Models — XGBoost + LSTM + MLflow |
+| Week 5 | ⏳ | Advanced ML — Ensemble + Optuna + SHAP |
+| Week 6 | ⏳ | Signal Generation — Buy/sell logic + risk rules |
+| Week 7 | ⏳ | Backtesting — Backtrader + walk-forward validation |
+| Week 8 | ⏳ | Paper Trading — Alpaca API + P&L tracking |
+| Week 9 | ⏳ | Monitoring — Evidently AI + Grafana dashboards |
+| Week 10 | ⏳ | Orchestration — Prefect DAGs |
+| Week 11 | ⏳ | Cloud Deployment — AWS EC2 + CI/CD |
+| Week 12 | ⏳ | Polish — Docs + architecture diagrams |
 
 ---
 
