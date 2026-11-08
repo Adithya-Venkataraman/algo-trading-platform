@@ -1,6 +1,6 @@
 # DRIFT — Algorithmic Trading Platform 🚀
 
-> A production-grade algorithmic trading platform with real-time data streaming, ML-powered signal generation, automated backtesting, and cloud deployment.
+> An end-to-end algorithmic trading platform with real-time data streaming, ML-powered signal generation, backtesting, paper trading, drift monitoring and automated pipelines.
 
 ![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
@@ -12,16 +12,19 @@
 
 ## 📌 Overview
 
-DRIFT is a self-running algorithmic trading system that:
+DRIFT is an automated trading research system that:
 
-- Ingests **real-time and historical** market data for 5 tickers
+- Ingests **historical (5 years) and real-time** market data for 5 tickers
 - Engineers **14 technical indicators** as ML features
-- Streams live prices via **Apache Kafka** pipeline
-- Trains **XGBoost + LSTM** models to predict buy/sell signals *(upcoming)*
-- Validates strategies via **automated backtesting** *(upcoming)*
-- Executes **paper trades** via Alpaca API *(upcoming)*
-- Monitors model health with **Evidently AI + Grafana** *(upcoming)*
-- Deploys on **AWS EC2** with full CI/CD *(upcoming)*
+- Streams live prices via an **Apache Kafka (Redpanda)** pipeline into TimescaleDB
+- Trains and compares **Logistic Regression, XGBoost (Optuna-tuned) and LSTM** models for binary BUY/SELL prediction, tracked with **MLflow** and explained with **SHAP**
+- Generates signals with a confidence filter and **Kelly Criterion** position sizing
+- Validates strategies with **Backtrader** backtesting
+- Places **paper trades** through the Alpaca API
+- Monitors feature drift with **Evidently AI** and visualises data in **Grafana** and **Streamlit**
+- Automates daily and weekly workflows with **Prefect**
+- Serves signals through a **FastAPI** service
+- Cloud deployment and CI/CD are still in progress *(see Roadmap)*
 
 ---
 
@@ -42,23 +45,24 @@ Data Sources (yfinance / Alpaca API)
    Feature Engineering Pipeline
    [stock_features hypertable]
    RSI | MACD | Bollinger Bands
-   SMA | EMA  | Volume Signals
+   SMA | EMA
             │
             ▼
-    ML Models (XGBoost + LSTM)        <- upcoming
+   ML Models (LogReg | XGBoost + Optuna | LSTM)
+   tracked with MLflow, explained with SHAP
             │
             ▼
-    Backtesting Engine                <- upcoming
-    (Backtrader + Pyfolio)
+   Signal Generator
+   confidence filter + Kelly position sizing
             │
-            ▼
-    Paper Trading (Alpaca API)        <- upcoming
-            │
-            ▼
-    Monitoring (Evidently + Grafana)  <- upcoming
-            │
-            ▼
-    AWS EC2 + CI/CD Pipeline          <- upcoming
+      ┌─────┴─────────────┐
+      ▼                   ▼
+ Backtesting          Paper Trading
+ (Backtrader)         (Alpaca API)
+
+ Monitoring:    Evidently AI (drift) | Grafana
+ Serving/UI:    FastAPI | Streamlit
+ Automation:    Prefect (daily pipeline, weekly maintenance)
 ```
 
 ---
@@ -69,31 +73,39 @@ Data Sources (yfinance / Alpaca API)
 drift/
 ├── data/
 │   ├── ingestion/
-│   │   └── fetcher.py            # yfinance data ingestion pipeline
+│   │   └── fetcher.py            # yfinance ingestion pipeline
 │   ├── features/
-│   │   └── indicators.py         # RSI, MACD, Bollinger Bands, SMA, EMA
-│   ├── feast/                    # Feature store config (upcoming)
+│   │   ├── indicators.py         # RSI, MACD, Bollinger Bands, SMA, EMA
+│   │   └── feature_pipeline.py   # stock_prices -> stock_features
 │   └── db_connection.py          # Reusable TimescaleDB connection
 │
 ├── models/
-│   ├── training/                 # XGBoost + LSTM training (upcoming)
-│   ├── evaluation/               # Walk-forward validation (upcoming)
-│   └── registry/                 # MLflow model promotion (upcoming)
+│   └── training/
+│       └── train.py              # LogReg, XGBoost, Optuna, SHAP, LSTM, MLflow
 │
 ├── streaming/
-│   ├── producer.py               # Kafka producer (live price → Kafka)
-│   └── consumer.py               # Kafka consumer (Kafka → TimescaleDB)
+│   ├── producer.py               # Kafka producer (live price -> Kafka)
+│   └── consumer.py               # Kafka consumer (Kafka -> TimescaleDB)
 │
-├── backtesting/                  # Backtrader integration (upcoming)
 ├── trading/
-│   └── execution/                # Alpaca paper trading (upcoming)
-├── api/                          # FastAPI signal serving (upcoming)
-├── monitoring/                   # Evidently AI + Grafana (upcoming)
+│   ├── signal_generator.py       # BUY/SELL/FLAT signals + Kelly sizing
+│   └── paper_trader.py           # Alpaca paper trading
+│
+├── backtesting/
+│   └── backtest.py               # Backtrader strategy + metrics
+│
+├── monitoring/
+│   └── drift_detector.py         # Evidently drift report
+│
 ├── orchestration/
-│   └── prefect_flows/            # Automated pipelines (upcoming)
-├── tests/
-├── docs/
-├── docker-compose.yml            # TimescaleDB + Redpanda containers
+│   └── prefect_flows/
+│       └── trading_pipeline.py   # Daily + weekly Prefect flows
+│
+├── api/
+│   ├── main.py                   # FastAPI endpoints
+│   └── streamlit_app.py          # Streamlit dashboard
+│
+├── docker-compose.yml            # TimescaleDB, Redpanda, Grafana
 ├── requirements.txt
 └── README.md
 ```
@@ -105,18 +117,18 @@ drift/
 | Layer | Technology |
 |---|---|
 | Market Data | yfinance, Alpaca API |
-| Database | TimescaleDB (PostgreSQL hypertable) |
+| Database | TimescaleDB (PostgreSQL hypertables) |
 | Streaming | Apache Kafka (Redpanda) |
-| Feature Store | Feast *(upcoming)* |
-| ML Models | XGBoost, LSTM *(upcoming)* |
-| Experiment Tracking | MLflow *(upcoming)* |
-| Backtesting | Backtrader + Pyfolio *(upcoming)* |
-| Model Serving | FastAPI *(upcoming)* |
-| Orchestration | Prefect *(upcoming)* |
-| Monitoring | Evidently AI + Grafana *(upcoming)* |
+| ML Models | scikit-learn, XGBoost, TensorFlow (LSTM) |
+| Tuning / Explainability | Optuna, SHAP |
+| Experiment Tracking | MLflow |
+| Backtesting | Backtrader |
+| Paper Trading | Alpaca API |
+| Monitoring | Evidently AI, Grafana |
+| Orchestration | Prefect |
+| Serving / UI | FastAPI, Streamlit |
 | Containerization | Docker + Docker Compose |
-| Cloud | AWS EC2 *(upcoming)* |
-| CI/CD | GitHub Actions *(upcoming)* |
+| Cloud / CI/CD | In progress |
 | Language | Python 3.12, SQL |
 
 ---
@@ -132,6 +144,14 @@ GOOG    →  Google (Alphabet)
 AMZN    →  Amazon
 BTC-USD →  Bitcoin
 ```
+
+### Dataset
+
+- Source: Yahoo Finance via yfinance, daily OHLCV bars, about 5 years (2021 to 2026)
+- Stocks have roughly 3,000 rows each; BTC-USD has roughly 4,400 because it trades every day
+- Model inputs: 12 features (RSI, MACD, MACD signal, MACD histogram, Bollinger upper/middle/lower, SMA 20/50/200, EMA 12/26)
+- Label: next-day return thresholded at +/-0.2%; FLAT samples are dropped, so the task is binary BUY (1) vs SELL (-1)
+- Train/test split: chronological 80/20 with no shuffling, to avoid lookahead bias
 
 ### Database Schema
 
@@ -150,20 +170,20 @@ volume    BIGINT
 **stock_features** (hypertable):
 
 ```sql
-time         TIMESTAMPTZ NOT NULL
-symbol       VARCHAR(10) NOT NULL
-rsi          DOUBLE PRECISION   -- Relative Strength Index (14)
-macd         DOUBLE PRECISION   -- MACD Line
-macd_signal  DOUBLE PRECISION   -- Signal Line (9)
-macd_hist    DOUBLE PRECISION   -- MACD Histogram
-bb_upper     DOUBLE PRECISION   -- Bollinger Band Upper
-bb_middle    DOUBLE PRECISION   -- Bollinger Band Middle (SMA 20)
-bb_lower     DOUBLE PRECISION   -- Bollinger Band Lower
-sma_20       DOUBLE PRECISION   -- Simple Moving Average 20
-sma_50       DOUBLE PRECISION   -- Simple Moving Average 50
-sma_200      DOUBLE PRECISION   -- Simple Moving Average 200
-ema_12       DOUBLE PRECISION   -- Exponential Moving Average 12
-ema_26       DOUBLE PRECISION   -- Exponential Moving Average 26
+time        TIMESTAMPTZ NOT NULL
+symbol      VARCHAR(10) NOT NULL
+rsi         DOUBLE PRECISION   -- Relative Strength Index (14)
+macd        DOUBLE PRECISION   -- MACD Line
+macd_signal DOUBLE PRECISION   -- Signal Line (9)
+macd_hist   DOUBLE PRECISION   -- MACD Histogram
+bb_upper    DOUBLE PRECISION   -- Bollinger Band Upper
+bb_middle   DOUBLE PRECISION   -- Bollinger Band Middle (SMA 20)
+bb_lower    DOUBLE PRECISION   -- Bollinger Band Lower
+sma_20      DOUBLE PRECISION   -- Simple Moving Average 20
+sma_50      DOUBLE PRECISION   -- Simple Moving Average 50
+sma_200     DOUBLE PRECISION   -- Simple Moving Average 200
+ema_12      DOUBLE PRECISION   -- Exponential Moving Average 12
+ema_26      DOUBLE PRECISION   -- Exponential Moving Average 26
 ```
 
 ---
@@ -171,15 +191,15 @@ ema_26       DOUBLE PRECISION   -- Exponential Moving Average 26
 ## 🔄 Real-Time Streaming Pipeline
 
 ```
-Alpaca WebSocket
+Live price source
       ↓
-producer.py  (fetches live price every second)
+producer.py (fetches live prices every second)
       ↓
-Apache Kafka / Redpanda  (topic: stock-prices)
+Apache Kafka / Redpanda (topic: stock-prices)
       ↓
-consumer.py  (reads from Kafka)
+consumer.py (reads from Kafka)
       ↓
-TimescaleDB  (stock_prices hypertable)
+TimescaleDB (stock_prices hypertable)
 ```
 
 ---
@@ -203,6 +223,47 @@ TimescaleDB  (stock_prices hypertable)
 
 ---
 
+## 🧪 Results
+
+### Model comparison (about 5 years of data, binary BUY/SELL)
+
+| Model | Accuracy |
+|---|---|
+| Logistic Regression | 51% |
+| XGBoost (basic) | 57% |
+| **XGBoost (Optuna-tuned, 50 trials)** | **58%** (production model) |
+| LSTM (60 timesteps) | 53% |
+| Ensemble (XGBoost + LSTM) | 54% |
+
+Random guessing on a binary task is 50%, so these are modest edges, which is typical for noisy market data. SHAP analysis showed the MACD family (especially MACD signal) as the most influential features.
+
+### Backtest (BTC-USD, about 5 years, $10,000 starting capital)
+
+| Metric | Value |
+|---|---|
+| Total return | 21.81% |
+| Sharpe ratio | 0.42 |
+| Max drawdown | 9.54% |
+| Win rate | 51.91% |
+| Total trades | 262 |
+
+Settings: 57% confidence threshold, 15% position size, stop loss -2%, take profit +3%, 0.1% commission.
+
+### Drift monitoring
+
+Evidently compared 2021-2024 (reference) against 2024-2026 (current) AAPL features. 11 of 12 features drifted, which is expected for price-level features such as SMAs and Bollinger Bands. Drift detection is the trigger for weekly retraining in the Prefect maintenance flow.
+
+---
+
+## 🛡️ Risk Management
+
+- Trade only when model confidence exceeds the threshold
+- Position size from Kelly Criterion, capped per trade
+- Stop loss and take profit on open positions
+- Stop trading on large portfolio drawdown; limit concurrent positions
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -214,73 +275,99 @@ TimescaleDB  (stock_prices hypertable)
 
 ### Setup
 
-**1. Clone the repository:**
-
-```bash
+1. Clone the repository:
+```
 git clone https://github.com/Adithya-Venkataraman/algo-trading-platform.git
 cd algo-trading-platform
 ```
-
-**2. Create virtual environment:**
-
-```bash
+2. Create a virtual environment:
+```
 python3 -m venv venv
 source venv/bin/activate
 ```
-
-**3. Install dependencies:**
-
-```bash
+3. Install dependencies:
+```
 pip install -r requirements.txt
 ```
-
-**4. Start Docker containers:**
-
-```bash
+4. Start Docker containers (TimescaleDB, Redpanda, Grafana):
+```
 docker-compose up -d
-```
-
-**5. Verify containers are running:**
-
-```bash
 docker ps
-# Should show: timescaledb + redpanda
 ```
-
-**6. Run historical data ingestion:**
-
-```bash
+5. Create a `.env` file for paper trading (never commit this file):
+```
+ALPACA_API_KEY=your_key
+ALPACA_SECRET_KEY=your_secret
+ALPACA_BASE_URL=https://paper-api.alpaca.markets
+```
+6. Load historical data and compute features:
+```
 python -m data.ingestion.fetcher
+python -m data.features.feature_pipeline
 ```
+7. Train models (logged to MLflow):
+```
+python -m models.training.train
+mlflow ui
+```
+8. Backtest, generate signals, paper trade:
+```
+python -m backtesting.backtest
+python -m trading.signal_generator
+python -m trading.paper_trader
+```
+9. Drift detection and automation:
+```
+python -m monitoring.drift_detector
+python -m orchestration.prefect_flows.trading_pipeline
+```
+10. Real-time streaming (two terminals):
 
-**7. Start real-time streaming (two terminals):**
-
-```bash
-# Terminal 1 - Producer
+Terminal 1 - Producer:
+```
 python -m streaming.producer
-
-# Terminal 2 - Consumer
+```
+Terminal 2 - Consumer:
+```
 python -m streaming.consumer
 ```
+11. API and dashboard:
+```
+uvicorn api.main:app --port 8000
+streamlit run api/streamlit_app.py
+```
+
+Grafana runs via docker-compose at http://localhost:3000, and the API docs are at http://localhost:8000/docs.
 
 ---
 
 ## 🗓️ Build Progress
 
-| Week | Status | Description |
+| Phase | Status | Description |
 |---|---|---|
-| Week 1 | ✅ | Data Foundation — Docker, TimescaleDB, data ingestion |
-| Week 2 | ✅ | Feature Engineering — RSI, MACD, Bollinger Bands, SMA, EMA |
-| Week 3 | ✅ | Kafka Streaming — Producer/Consumer real-time pipeline |
-| Week 4 | ⏳ | ML Models — XGBoost + LSTM + MLflow |
-| Week 5 | ⏳ | Advanced ML — Ensemble + Optuna + SHAP |
-| Week 6 | ⏳ | Signal Generation — Buy/sell logic + risk rules |
-| Week 7 | ⏳ | Backtesting — Backtrader + walk-forward validation |
-| Week 8 | ⏳ | Paper Trading — Alpaca API + P&L tracking |
-| Week 9 | ⏳ | Monitoring — Evidently AI + Grafana dashboards |
-| Week 10 | ⏳ | Orchestration — Prefect DAGs |
-| Week 11 | ⏳ | Cloud Deployment — AWS EC2 + CI/CD |
-| Week 12 | ⏳ | Polish — Docs + architecture diagrams |
+| Data Foundation | ✅ | Docker, TimescaleDB hypertable, multi-ticker ingestion |
+| Feature Engineering | ✅ | RSI, MACD, Bollinger Bands, SMA, EMA |
+| Kafka Streaming | ✅ | Producer/Consumer pipeline, real-time data flow |
+| ML Models | ✅ | LogReg, XGBoost, Optuna tuning, SHAP, MLflow tracking |
+| LSTM + Ensemble | ✅ | Sequence model and weighted ensemble (XGBoost remains best) |
+| Signal Generation | ✅ | Confidence filter, Kelly sizing, risk rules |
+| Backtesting | ✅ | Backtrader, performance metrics |
+| Paper Trading | ✅ | Alpaca API order execution |
+| Monitoring | ✅ | Evidently AI drift detection, Grafana dashboards |
+| Orchestration | ✅ | Prefect daily and weekly flows |
+| FastAPI + Streamlit | ✅ | Runs locally |
+| Public cloud deployment | 🔨 | Hosted database + Streamlit Cloud in progress |
+| CI/CD | ⏳ | Planned |
+
+---
+
+## ⚠️ Limitations
+
+- About 5 years of daily data; results are sensitive to the market regime
+- The backtest uses signals over the full period, which includes the data the model was trained on, so it is optimistic. A true out-of-sample test and live paper-trading results are the real validation
+- The strategy did not beat buy-and-hold on raw return for BTC-USD; its advantage is lower drawdown
+- Commission is modelled but slippage is simplified
+- For research and education only; not financial advice
 
 ---
 
