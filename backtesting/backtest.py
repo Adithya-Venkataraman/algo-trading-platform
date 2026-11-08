@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.append('/home/jingv/algo-trading-platform')
 import backtrader as bt
 import pandas as pd
@@ -6,8 +7,9 @@ import joblib
 import xgboost as xgb
 import numpy as np
 from sqlalchemy import create_engine
-from trading.signal_generator import generate_signal
-
+from dotenv import load_dotenv
+from trading.signal_generator import generate_signal, load_dotenv
+load_dotenv()
 
 # ── LOAD MODEL ──
 model_xgb = xgb.XGBClassifier()
@@ -19,7 +21,7 @@ le = joblib.load('models/training/label_encoder.pkl')
 print("Pre-computing signals...")
 from sqlalchemy import create_engine
 engine = create_engine(
-    'postgresql://trading:trading123@localhost:5432/trading_db'
+    os.getenv("DATABASE_URL")
 )
 
 feature_query = """

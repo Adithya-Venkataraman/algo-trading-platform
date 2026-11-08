@@ -9,7 +9,11 @@ from trading.signal_generator import generate_signal
 from sqlalchemy import create_engine
 import pandas as pd
 from datetime import datetime
-
+import os
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+load_dotenv()
+engine=create_engine("postgresql://trading:trading123@localhost:5432/trading_db")
 # initialize app
 app = FastAPI(
     title="DRIFT Trading API",
@@ -31,9 +35,6 @@ model_xgb.load_model('models/training/xgboost_tuned.json')
 scaler = joblib.load('models/training/scaler.pkl')
 le = joblib.load('models/training/label_encoder.pkl')
 
-engine = create_engine(
-    'postgresql://trading:trading123@localhost:5432/trading_db'
-)
 
 # ── ENDPOINTS ──
 

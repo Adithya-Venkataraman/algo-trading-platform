@@ -2,12 +2,14 @@ import sys
 sys.path.append('/home/jingv/algo-trading-platform')
 import pandas as pd
 import json
+import os
 from evidently import Report
 from evidently.presets import DataDriftPreset, DataSummaryPreset
 from sqlalchemy import create_engine
-
+from dotenv import load_dotenv
+load_dotenv()
 engine = create_engine(
-    'postgresql://trading:trading123@localhost:5432/trading_db'
+   os.getenv("DATABASE_URL")
 )
 
 def get_reference_data():

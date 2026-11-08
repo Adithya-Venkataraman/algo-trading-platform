@@ -7,6 +7,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from sqlalchemy import create_engine
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # page config
 st.set_page_config(
@@ -17,9 +20,7 @@ st.set_page_config(
 )
 
 API_URL = "http://localhost:8000"
-engine = create_engine(
-    'postgresql://trading:trading123@localhost:5432/trading_db'
-)
+engine = create_engine("postgresql://trading:trading123@localhost:5432/trading_db")
 
 # ── SIDEBAR ──
 st.sidebar.title("⚙️ DRIFT Controls")

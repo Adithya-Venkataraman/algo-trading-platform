@@ -5,7 +5,9 @@ import sys
 import joblib
 import xgboost as xgb
 from sqlalchemy import create_engine
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 sys.path.append('/home/jingv/algo-trading-platform')
 
 
@@ -17,7 +19,7 @@ def kelly_criterion(win_prob, win_loss_ratio=1.5):
 
 def get_latest_features(symbol):
     engine = create_engine(
-        'postgresql://trading:trading123@localhost:5432/trading_db'
+        "postgresql://trading:trading123@localhost:5432/trading_db"
     )
     query = f"""
         SELECT rsi, macd, macd_signal, macd_hist,
