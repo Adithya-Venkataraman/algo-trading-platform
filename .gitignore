@@ -6,7 +6,6 @@ include/
 pyvenv.cfg
 __pycache__/
 *.pyc
-.env
 *.egg-info
 .DS_Store
 mlruns/
@@ -19,3 +18,5 @@ temp_interactive_push.bat
 .gitignore
 shap_summary.pngscripts/
 74662f8 (Complete DRIFT platform: ML models, backtesting, paper trading, monitoring, orchestration, FastAPI, Streamlit dashboard)
+config.bat
+node_modules
